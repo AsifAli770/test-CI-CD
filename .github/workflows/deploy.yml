@@ -1,0 +1,104 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  FRONTEND_DIR: basic crud frontend
+  BACKEND_DIR: basic crud
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint frontend
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm lint
+
+      - name: Build frontend
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm build
+
+      - name: Check backend installs
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: npm ci --omit=dev
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIR }}/dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend
+          path: |
+            ${{ env.BACKEND_DIR }}
+            !${{ env.BACKEND_DIR }}/node_modules
+
+  deploy:
+    needs: build
+    # Self-hosted runner installed on the Windows/IIS server
+    runs-on: [self-hosted, windows]
+    environment: production
+    env:
+      # Override these in Settings > Secrets and variables > Actions > Variables
+      IIS_SITE_PATH: ${{ vars.IIS_SITE_PATH || 'C:\inetpub\crud-frontend' }}
+      BACKEND_DEPLOY_PATH: ${{ vars.BACKEND_DEPLOY_PATH || 'C:\apps\crud-backend' }}
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: artifacts/frontend
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend
+          path: artifacts/backend
+
+      - name: Deploy frontend to IIS
+        run: |
+          robocopy artifacts\frontend "$env:IIS_SITE_PATH" /MIR /NFL /NDL /NP
+          # robocopy exit codes below 8 mean success
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE } else { exit 0 }
+
+      - name: Deploy backend files
+        run: |
+          # /XD keeps the server's node_modules from being purged
+          robocopy artifacts\backend "$env:BACKEND_DEPLOY_PATH" /MIR /XD node_modules /NFL /NDL /NP
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE } else { exit 0 }
+
+      - name: Install backend dependencies
+        working-directory: ${{ env.BACKEND_DEPLOY_PATH }}
+        run: npm ci --omit=dev
+
+      - name: Restart backend
+        working-directory: ${{ env.BACKEND_DEPLOY_PATH }}
+        run: |
+          pm2 describe crud-backend *> $null
+          if ($LASTEXITCODE -eq 0) {
+            pm2 restart crud-backend
+          } else {
+            pm2 start index.js --name crud-backend
+          }
+          pm2 save
