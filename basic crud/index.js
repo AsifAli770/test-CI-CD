@@ -9,9 +9,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Allow the frontend to call the API from another origin.
-// Set CORS_ORIGIN to the frontend URL in production; defaults to any origin.
+// CORS_ORIGIN: comma-separated frontend URLs; empty allows any origin.
+const allowedOrigins = (process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", process.env.CORS_ORIGIN || "*");
+  const origin = req.headers.origin;
+  if (allowedOrigins.length === 0) {
+    res.header("Access-Control-Allow-Origin", "*");
+  } else if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Vary", "Origin");
+  }
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.sendStatus(204);
