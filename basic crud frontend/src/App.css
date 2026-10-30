@@ -1,45 +1,117 @@
-.container {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 32px 16px;
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 24px 16px;
+  background: var(--surface);
+  border-right: 1.5px solid var(--border);
+}
+
+.brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  padding: 0 12px 24px;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nav-link {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text);
+}
+
+.nav-link:hover {
+  background: var(--bg);
+}
+
+.nav-link.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Main content */
+.content {
+  flex: 1;
+  min-width: 0;
+  max-width: 760px;
+  padding: 40px 32px;
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 h1 {
-  margin: 0 0 24px;
+  margin: 0;
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
 }
 
-h2 {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
+.count {
+  color: var(--muted);
 }
 
+/* Form */
 .item-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 20px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  gap: 16px;
+  padding: 24px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
   background: var(--surface);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 500;
 }
 
 input,
 textarea {
   font: inherit;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
+  font-weight: 400;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
   border-radius: 6px;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   resize: vertical;
 }
 
-input:focus,
-textarea:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
 }
 
+input:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.15);
+}
+
+/* Buttons */
 .actions {
   display: flex;
   gap: 8px;
@@ -47,22 +119,27 @@ textarea:focus {
 
 button {
   font: inherit;
-  padding: 6px 14px;
-  border: 1px solid var(--accent);
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1.5px solid var(--accent);
   border-radius: 6px;
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
 button:hover {
-  opacity: 0.9;
+  background: #333;
 }
 
 button.secondary {
   background: transparent;
   color: var(--text);
-  border-color: var(--border);
+}
+
+button.secondary:hover {
+  background: var(--bg);
 }
 
 button.danger {
@@ -71,23 +148,19 @@ button.danger {
   border-color: var(--danger);
 }
 
-.error {
-  color: var(--danger);
-  margin: 16px 0 0;
+button.danger:hover {
+  background: var(--danger);
+  color: #fff;
 }
 
-.muted {
-  color: var(--muted);
-  margin-top: 24px;
-}
-
+/* Task list */
 .item-list {
   list-style: none;
   padding: 0;
-  margin: 24px 0 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .item-list li {
@@ -95,17 +168,79 @@ button.danger {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.item-list li.editing {
-  border-color: var(--accent);
+  padding: 16px 18px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
 }
 
 .item-list p {
   margin: 4px 0 0;
   color: var(--muted);
   white-space: pre-wrap;
+}
+
+.empty {
+  padding: 40px 24px;
+  text-align: center;
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.empty p {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  margin: 0 0 16px;
+}
+
+.item-form .error {
+  margin: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Small screens: sidebar becomes a top bar */
+@media (max-width: 640px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-right: none;
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .brand {
+    padding: 0;
+  }
+
+  .sidebar nav {
+    flex-direction: row;
+  }
+
+  .nav-link {
+    width: auto;
+    padding: 8px 12px;
+  }
+
+  .content {
+    padding: 24px 16px;
+  }
+
+  .item-list li {
+    flex-direction: column;
+  }
 }

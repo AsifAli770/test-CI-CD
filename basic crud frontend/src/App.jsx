@@ -5,6 +5,7 @@ import './App.css'
 const emptyForm = { name: '', description: '' }
 
 function App() {
+  const [view, setView] = useState('dashboard')
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
@@ -27,10 +28,16 @@ function App() {
     setEditingId(null)
   }
 
+  const goTo = (nextView) => {
+    if (nextView === 'add') resetForm()
+    setError('')
+    setView(nextView)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) {
-      setError('Name is required')
+      setError('Task name is required')
       return
     }
     setError('')
@@ -43,6 +50,7 @@ function App() {
         setItems([...items, created])
       }
       resetForm()
+      setView('dashboard')
     } catch (err) {
       setError(err.message)
     }
@@ -51,76 +59,124 @@ function App() {
   const handleEdit = (item) => {
     setEditingId(item.id)
     setForm({ name: item.name, description: item.description || '' })
+    setError('')
+    setView('add')
+  }
+
+  const handleCancel = () => {
+    resetForm()
+    goTo('dashboard')
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this item?')) return
+    if (!confirm('Delete this task?')) return
     setError('')
     try {
       await deleteItem(id)
       setItems(items.filter((item) => item.id !== id))
-      if (editingId === id) resetForm()
     } catch (err) {
       setError(err.message)
     }
   }
 
   return (
-    <main className="container">
-      <h1>Items</h1>
+    <div className="layout">
+      <aside className="sidebar">
+        <div className="brand">Tasks</div>
+        <nav>
+          <button
+            className={`nav-link ${view === 'dashboard' ? 'active' : ''}`}
+            onClick={() => goTo('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`nav-link ${view === 'add' ? 'active' : ''}`}
+            onClick={() => goTo('add')}
+          >
+            Add Task
+          </button>
+        </nav>
+      </aside>
 
-      <form className="item-form" onSubmit={handleSubmit}>
-        <h2>{editingId ? 'Edit item' : 'Add item'}</h2>
-        <input
-          name="name"
-          placeholder="Name"
-          value={form.name}
-          onChange={handleChange}
-        />
-        <textarea
-          name="description"
-          placeholder="Description (optional)"
-          rows="3"
-          value={form.description}
-          onChange={handleChange}
-        />
-        <div className="actions">
-          <button type="submit">{editingId ? 'Update' : 'Add'}</button>
-          {editingId && (
-            <button type="button" className="secondary" onClick={resetForm}>
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+      <main className="content">
+        {view === 'dashboard' ? (
+          <>
+            <header className="page-header">
+              <h1>Dashboard</h1>
+              <span className="count">
+                {items.length} {items.length === 1 ? 'task' : 'tasks'}
+              </span>
+            </header>
 
-      {error && <p className="error">{error}</p>}
+            {error && <p className="error">{error}</p>}
 
-      {loading ? (
-        <p className="muted">Loading…</p>
-      ) : items.length === 0 ? (
-        <p className="muted">No items yet. Add one above.</p>
-      ) : (
-        <ul className="item-list">
-          {items.map((item) => (
-            <li key={item.id} className={item.id === editingId ? 'editing' : ''}>
-              <div>
-                <strong>{item.name}</strong>
-                {item.description && <p>{item.description}</p>}
+            {loading ? (
+              <p className="muted">Loading…</p>
+            ) : items.length === 0 ? (
+              <div className="empty">
+                <p>No tasks yet.</p>
+                <button onClick={() => goTo('add')}>Add your first task</button>
               </div>
+            ) : (
+              <ul className="item-list">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <div>
+                      <strong>{item.name}</strong>
+                      {item.description && <p>{item.description}</p>}
+                    </div>
+                    <div className="actions">
+                      <button className="secondary" onClick={() => handleEdit(item)}>
+                        Edit
+                      </button>
+                      <button className="danger" onClick={() => handleDelete(item.id)}>
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : (
+          <>
+            <header className="page-header">
+              <h1>{editingId ? 'Edit Task' : 'Add Task'}</h1>
+            </header>
+
+            <form className="item-form" onSubmit={handleSubmit}>
+              <label>
+                Task name
+                <input
+                  name="name"
+                  placeholder="e.g. Buy groceries"
+                  value={form.name}
+                  onChange={handleChange}
+                />
+              </label>
+              <label>
+                Description
+                <textarea
+                  name="description"
+                  placeholder="Optional details"
+                  rows="4"
+                  value={form.description}
+                  onChange={handleChange}
+                />
+              </label>
+              {error && <p className="error">{error}</p>}
               <div className="actions">
-                <button className="secondary" onClick={() => handleEdit(item)}>
-                  Edit
-                </button>
-                <button className="danger" onClick={() => handleDelete(item.id)}>
-                  Delete
+                <button type="submit">{editingId ? 'Update Task' : 'Add Task'}</button>
+                <button type="button" className="secondary" onClick={handleCancel}>
+                  Cancel
                 </button>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+            </form>
+          </>
+        )}
+      </main>
+    </div>
   )
 }
 

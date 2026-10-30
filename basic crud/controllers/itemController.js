@@ -1,31 +1,43 @@
+const mongoose = require("mongoose");
 const Item = require("../models/itemModel");
 
-const getItems = (req, res) => {
-  res.json(Item.findAll());
+const notFound = (res) => res.status(404).json({ message: "Item not found" });
+
+const getItems = async (req, res) => {
+  const items = await Item.find().sort({ createdAt: 1 });
+  res.json(items);
 };
 
-const getItem = (req, res) => {
-  const item = Item.findById(Number(req.params.id));
-  if (!item) return res.status(404).json({ message: "Item not found" });
+const getItem = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return notFound(res);
+  const item = await Item.findById(req.params.id);
+  if (!item) return notFound(res);
   res.json(item);
 };
 
-const createItem = (req, res) => {
+const createItem = async (req, res) => {
   const { name, description } = req.body || {};
   if (!name) return res.status(400).json({ message: "Name is required" });
-  const item = Item.create({ name, description });
+  const item = await Item.create({ name, description });
   res.status(201).json(item);
 };
 
-const updateItem = (req, res) => {
-  const item = Item.update(Number(req.params.id), req.body || {});
-  if (!item) return res.status(404).json({ message: "Item not found" });
+const updateItem = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return notFound(res);
+  const { name, description } = req.body || {};
+  const item = await Item.findByIdAndUpdate(
+    req.params.id,
+    { name, description },
+    { new: true, runValidators: true }
+  );
+  if (!item) return notFound(res);
   res.json(item);
 };
 
-const deleteItem = (req, res) => {
-  const deleted = Item.remove(Number(req.params.id));
-  if (!deleted) return res.status(404).json({ message: "Item not found" });
+const deleteItem = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return notFound(res);
+  const item = await Item.findByIdAndDelete(req.params.id);
+  if (!item) return notFound(res);
   res.json({ message: "Item deleted" });
 };
 

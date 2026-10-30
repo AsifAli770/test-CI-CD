@@ -1,4 +1,8 @@
+// Load variables from .env when it exists (Render sets them directly instead)
+require("dotenv").config();
+
 const express = require("express");
+const connectDB = require("./config/db");
 const itemRoutes = require("./routes/itemRoutes");
 
 const app = express();
@@ -22,6 +26,22 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// Express 5 forwards errors from async handlers here
+app.use((err, req, res, next) => {
+  if (err.name === "ValidationError") {
+    return res.status(400).json({ message: Object.values(err.errors)[0].message });
+  }
+  console.error(err);
+  res.status(500).json({ message: "Something went wrong" });
 });
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to connect to MongoDB:", err.message);
+    process.exit(1);
+  });
