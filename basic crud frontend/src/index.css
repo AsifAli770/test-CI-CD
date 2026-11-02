@@ -1,24 +1,44 @@
-:root {
-  --bg: #f8f8f0; /* daisy white */
-  --surface: #ffffff;
-  --text: #111111;
-  --muted: #5c5a4f;
-  --border: #111111;
-  --accent: #111111;
-  --danger: #c62828;
+@import "tailwindcss";
 
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
-  color-scheme: light;
+@theme {
+  --color-brand-50: #eff8ff;
+  --color-brand-100: #dbeefe;
+  --color-brand-500: #2e86de;
+  --color-brand-600: #1f6fbf;
+  --color-brand-700: #1a5a9b;
 }
 
-* {
-  box-sizing: border-box;
+html,
+body,
+#root {
+  height: 100%;
 }
 
 body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
+
+/* When a .print-area is on screen (e.g. order preview), print only that */
+@media print {
+  body:has(.print-area) * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 0 auto 0;
+  }
+}
+
+/* Number inputs in tables: no spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
   margin: 0;
-  min-height: 100vh;
-  background: var(--bg);
-  color: var(--text);
+}
+input[type="number"] {
+  -moz-appearance: textfield;
 }
