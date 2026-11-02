@@ -3,17 +3,24 @@ import { Navigate, useNavigate } from 'react-router'
 import { Alert, Button, Field, Input } from '../components/ui'
 import { api } from '../lib/api'
 import { getToken, saveLogin } from '../lib/auth'
+import { checks, useErrors } from '../lib/validate'
 
 export default function Login() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ username: '', password: '' })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const { errors, validate, clear } = useErrors()
 
   if (getToken()) return <Navigate to="/" replace />
 
   async function submit(event) {
     event.preventDefault()
+    const valid = validate({
+      username: [form.username, checks.required('Username')],
+      password: [form.password, checks.required('Password')],
+    })
+    if (!valid) return
     setError(null)
     setSaving(true)
     try {
@@ -33,24 +40,28 @@ export default function Login() {
           <h1 className="text-lg font-semibold text-white">Welcome back</h1>
           <p className="mt-1 text-sm text-slate-400">Sign in to manage your dairy</p>
         </div>
-        <form onSubmit={submit} className="space-y-4 p-8">
+        <form onSubmit={submit} noValidate className="space-y-4 p-8">
           <Alert onClose={() => setError(null)}>{error}</Alert>
-          <Field label="Username">
+          <Field label="Username" error={errors.username}>
             <Input
               value={form.username}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, username: e.target.value })
+                clear('username')
+              }}
               autoComplete="username"
-              required
               autoFocus
             />
           </Field>
-          <Field label="Password">
+          <Field label="Password" error={errors.password}>
             <Input
               type="password"
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, password: e.target.value })
+                clear('password')
+              }}
               autoComplete="current-password"
-              required
             />
           </Field>
           <Button type="submit" className="w-full py-2.5" disabled={saving}>

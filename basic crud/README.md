@@ -28,6 +28,8 @@ CORS_ORIGIN=                         # optional
 
 ## API
 
+`GET /api/dashboard` returns `{ customers, suppliers }` (active counts, archived not included).
+
 Same routes under `/api/customers` and `/api/suppliers`:
 
 | Method | Path | Body / query |

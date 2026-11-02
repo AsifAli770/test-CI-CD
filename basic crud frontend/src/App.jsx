@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import { getToken } from './lib/auth'
 import { PARTIES } from './lib/parties'
 import Credit from './pages/Credit'
+import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Orders from './pages/Orders'
 import PartyArchive from './pages/PartyArchive'
@@ -26,6 +27,7 @@ export default function App() {
           </RequireAuth>
         }
       >
+        <Route index element={<Dashboard />} />
         <Route path="customers" element={<PartyList key="customers" config={customer} />} />
         <Route path="customers/ledger" element={<PartyLedger key="customers" config={customer} />} />
         <Route path="customers/archive" element={<PartyArchive key="customers" config={customer} />} />
@@ -36,7 +38,7 @@ export default function App() {
         <Route path="orders/done" element={<Orders key="done" done />} />
         <Route path="credit" element={<Credit key="pending" />} />
         <Route path="credit/done" element={<Credit key="done" done />} />
-        <Route path="*" element={<Navigate to="/customers" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   )

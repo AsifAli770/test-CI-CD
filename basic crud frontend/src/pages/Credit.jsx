@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import ItemRows from '../components/ItemRows'
 import {
   Alert,
@@ -8,6 +8,7 @@ import {
   ConfirmDialog,
   Empty,
   Field,
+  FieldError,
   Input,
   Loading,
   Modal,
@@ -19,8 +20,9 @@ import {
 } from '../components/ui'
 import { api } from '../lib/api'
 import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
-import { useFetch } from '../lib/hooks'
+import { useFetch, useOpenOnNew } from '../lib/hooks'
 import { initialItemRows, itemsBody, itemsTotal } from '../lib/items'
+import { checkItems, checks, useErrors } from '../lib/validate'
 
 const balanceOf = (u) => Math.round((u.total - u.paid) * 100) / 100
 
@@ -37,6 +39,7 @@ const EyeIcon = () => (
 export default function Credit({ done = false }) {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState(null)
+  useOpenOnNew(useCallback(() => setEditing({}), []))
   const [paying, setPaying] = useState(null)
   const [previewId, setPreviewId] = useState(null)
   const [deleting, setDeleting] = useState(null)
@@ -196,11 +199,26 @@ function CreditForm({ credit, onDone }) {
   const [rows, setRows] = useState(() => initialItemRows(credit.items))
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const set = (field) => (event) => setForm({ ...form, [field]: event.target.value })
+  const { errors, validate, clear } = useErrors()
+  const set = (field) => (event) => {
+    setForm({ ...form, [field]: event.target.value })
+    clear(field)
+  }
+  const updateRows = (next) => {
+    setRows(next)
+    clear('items')
+  }
   const total = itemsTotal(rows)
 
   async function submit(event) {
     event.preventDefault()
+    const valid = validate({
+      name: [form.name, checks.name()],
+      mobile: [form.mobile, checks.mobile()],
+      date: [form.date, checks.required('Date')],
+      items: [rows, checkItems],
+    })
+    if (!valid) return
     setError(null)
     setSaving(true)
     try {
@@ -215,21 +233,24 @@ function CreditForm({ credit, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form onSubmit={submit} noValidate className="space-y-5">
       <Alert onClose={() => setError(null)}>{error}</Alert>
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Name" required>
-          <Input value={form.name} onChange={set('name')} required autoFocus maxLength={100} />
+        <Field label="Name" required error={errors.name}>
+          <Input value={form.name} onChange={set('name')} autoFocus maxLength={100} />
         </Field>
-        <Field label="Mobile number">
+        <Field label="Mobile number" error={errors.mobile}>
           <Input value={form.mobile} onChange={set('mobile')} inputMode="numeric" maxLength={10} placeholder="10 digits" />
         </Field>
-        <Field label="Date">
-          <Input type="date" value={form.date} onChange={set('date')} required />
+        <Field label="Date" required error={errors.date}>
+          <Input type="date" value={form.date} onChange={set('date')} />
         </Field>
       </div>
 
-      <ItemRows rows={rows} setRows={setRows} />
+      <div>
+        <ItemRows rows={rows} setRows={updateRows} />
+        <FieldError>{errors.items}</FieldError>
+      </div>
 
       <Field label="Note">
         <Input value={form.note} onChange={set('note')} maxLength={300} />
@@ -239,7 +260,7 @@ function CreditForm({ credit, onDone }) {
         <span className="text-sm">
           Total: <b className="tabular-nums">{formatMoney(total)}</b>
         </span>
-        <Button type="submit" disabled={saving || total === 0}>
+        <Button type="submit" disabled={saving}>
           {saving ? 'Saving…' : 'Save credit sale'}
         </Button>
       </div>
@@ -251,9 +272,15 @@ function PaymentForm({ credit, onDone }) {
   const [form, setForm] = useState({ date: todayStr(), amount: String(balanceOf(credit)), method: 'cash' })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const { errors, validate, clear } = useErrors()
 
   async function submit(event) {
     event.preventDefault()
+    const valid = validate({
+      date: [form.date, checks.required('Date')],
+      amount: [form.amount, checks.positive('Amount')],
+    })
+    if (!valid) return
     setError(null)
     setSaving(true)
     try {
@@ -266,21 +293,30 @@ function PaymentForm({ credit, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-2 gap-4">
+    <form onSubmit={submit} noValidate className="grid grid-cols-2 gap-4">
       <div className="col-span-2 empty:hidden">
         <Alert onClose={() => setError(null)}>{error}</Alert>
       </div>
-      <Field label="Date">
-        <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+      <Field label="Date" required error={errors.date}>
+        <Input
+          type="date"
+          value={form.date}
+          onChange={(e) => {
+            setForm({ ...form, date: e.target.value })
+            clear('date')
+          }}
+        />
       </Field>
-      <Field label="Amount (₹)">
+      <Field label="Amount (₹)" required error={errors.amount}>
         <Input
           type="number"
           step="0.01"
           min="0"
           value={form.amount}
-          onChange={(e) => setForm({ ...form, amount: e.target.value })}
-          required
+          onChange={(e) => {
+            setForm({ ...form, amount: e.target.value })
+            clear('amount')
+          }}
           autoFocus
         />
       </Field>

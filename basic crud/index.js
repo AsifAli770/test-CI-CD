@@ -10,6 +10,7 @@ const Order = require("./models/Order");
 const Supplier = require("./models/Supplier");
 const Credit = require("./models/Credit");
 const authRoutes = require("./routes/authRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const partyRoutes = require("./routes/partyRoutes");
 const creditRoutes = require("./routes/creditRoutes");
@@ -50,6 +51,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 // Everything below needs a logged-in admin
 app.use("/api", requireAuth);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/customers", partyRoutes(Customer));
 app.use("/api/suppliers", partyRoutes(Supplier));
 app.use("/api/orders", orderRoutes);

@@ -4,6 +4,7 @@ import { Alert, Balance, Button, Card, ConfirmDialog, Empty, Field, Input, Loadi
 import { api } from '../lib/api'
 import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
 import { useFetch } from '../lib/hooks'
+import { checks, useErrors } from '../lib/validate'
 
 // Everyone in one list. Click a row to open their ledger, click again to close.
 // Add milk / payment from the buttons on each row.
@@ -262,10 +263,16 @@ function useEntryForm(config, party, initial, onDone) {
   const [form, setForm] = useState(initial)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const set = (field) => (event) => setForm({ ...form, [field]: event.target.value })
+  const { errors, validate, clear } = useErrors()
+  const set = (field) => (event) => {
+    setForm({ ...form, [field]: event.target.value })
+    clear(field)
+  }
 
-  async function submit(event, body) {
+  // rules: { field: [value, ...checks] } - checked before anything is sent
+  async function submit(event, body, rules) {
     event.preventDefault()
+    if (!validate(rules)) return
     setSaving(true)
     setError(null)
     try {
@@ -277,11 +284,11 @@ function useEntryForm(config, party, initial, onDone) {
     }
   }
 
-  return { form, setForm, set, error, setError, saving, submit }
+  return { form, setForm, set, error, setError, errors, saving, submit }
 }
 
 function MilkForm({ config, party, onDone }) {
-  const { form, set, error, setError, saving, submit } = useEntryForm(
+  const { form, set, error, setError, errors, saving, submit } = useEntryForm(
     config,
     party,
     { date: todayStr(), quantity: '', rate: String(party.rate), note: '' },
@@ -290,18 +297,28 @@ function MilkForm({ config, party, onDone }) {
   const amount = Math.round(Number(form.quantity || 0) * Number(form.rate || 0) * 100) / 100
 
   return (
-    <form onSubmit={(e) => submit(e, { kind: 'milk', ...form })} className="grid grid-cols-2 gap-4">
+    <form
+      noValidate
+      onSubmit={(e) =>
+        submit(e, { kind: 'milk', ...form }, {
+          date: [form.date, checks.required('Date')],
+          quantity: [form.quantity, checks.positive('Quantity')],
+          rate: [form.rate, checks.requiredNotNegative('Rate')],
+        })
+      }
+      className="grid grid-cols-2 gap-4"
+    >
       <div className="col-span-2 empty:hidden">
         <Alert onClose={() => setError(null)}>{error}</Alert>
       </div>
-      <Field label="Date">
-        <Input type="date" value={form.date} onChange={set('date')} required />
+      <Field label="Date" required error={errors.date}>
+        <Input type="date" value={form.date} onChange={set('date')} />
       </Field>
-      <Field label="Quantity (kg)">
-        <Input type="number" step="0.001" min="0" value={form.quantity} onChange={set('quantity')} required autoFocus />
+      <Field label="Quantity (kg)" required error={errors.quantity}>
+        <Input type="number" step="0.001" min="0" value={form.quantity} onChange={set('quantity')} autoFocus />
       </Field>
-      <Field label="Rate (₹/kg)">
-        <Input type="number" step="0.01" min="0" value={form.rate} onChange={set('rate')} required />
+      <Field label="Rate (₹/kg)" required error={errors.rate}>
+        <Input type="number" step="0.01" min="0" value={form.rate} onChange={set('rate')} />
       </Field>
       <Field label="Note">
         <Input value={form.note} onChange={set('note')} maxLength={200} />
@@ -319,7 +336,7 @@ function MilkForm({ config, party, onDone }) {
 }
 
 function PaymentForm({ config, party, onDone }) {
-  const { form, setForm, set, error, setError, saving, submit } = useEntryForm(
+  const { form, setForm, set, error, setError, errors, saving, submit } = useEntryForm(
     config,
     party,
     { date: todayStr(), amount: '', method: 'cash' },
@@ -327,15 +344,24 @@ function PaymentForm({ config, party, onDone }) {
   )
 
   return (
-    <form onSubmit={(e) => submit(e, { kind: 'payment', ...form })} className="grid grid-cols-2 gap-4">
+    <form
+      noValidate
+      onSubmit={(e) =>
+        submit(e, { kind: 'payment', ...form }, {
+          date: [form.date, checks.required('Date')],
+          amount: [form.amount, checks.positive('Amount')],
+        })
+      }
+      className="grid grid-cols-2 gap-4"
+    >
       <div className="col-span-2 empty:hidden">
         <Alert onClose={() => setError(null)}>{error}</Alert>
       </div>
-      <Field label="Date">
-        <Input type="date" value={form.date} onChange={set('date')} required />
+      <Field label="Date" required error={errors.date}>
+        <Input type="date" value={form.date} onChange={set('date')} />
       </Field>
-      <Field label="Amount (₹)">
-        <Input type="number" step="0.01" min="0" value={form.amount} onChange={set('amount')} required autoFocus />
+      <Field label="Amount (₹)" required error={errors.amount}>
+        <Input type="number" step="0.01" min="0" value={form.amount} onChange={set('amount')} autoFocus />
       </Field>
       <div className="col-span-2">
         <span className="mb-1 block text-sm font-medium text-slate-700">Paid by</span>

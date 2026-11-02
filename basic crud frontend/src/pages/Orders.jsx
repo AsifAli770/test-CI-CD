@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import ItemRows from '../components/ItemRows'
 import {
   Alert,
@@ -8,6 +8,7 @@ import {
   ConfirmDialog,
   Empty,
   Field,
+  FieldError,
   Input,
   Loading,
   Modal,
@@ -19,8 +20,9 @@ import {
 } from '../components/ui'
 import { api } from '../lib/api'
 import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
-import { useFetch } from '../lib/hooks'
+import { useFetch, useOpenOnNew } from '../lib/hooks'
 import { initialItemRows, itemsBody, itemsTotal } from '../lib/items'
+import { checkItems, checks, useErrors } from '../lib/validate'
 
 const balanceOf = (order) => Math.round((order.total - order.totalPaid) * 100) / 100
 const paymentsSum = (order) => (order.payments || []).reduce((sum, p) => sum + p.amount, 0)
@@ -41,6 +43,7 @@ const EyeIcon = () => (
 export default function Orders({ done = false }) {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState(null)
+  useOpenOnNew(useCallback(() => setEditing({}), []))
   const [paying, setPaying] = useState(null)
   const [previewId, setPreviewId] = useState(null)
   const [finishing, setFinishing] = useState(null)
@@ -247,9 +250,15 @@ function PaymentForm({ order, onDone }) {
   const [form, setForm] = useState({ date: todayStr(), amount: String(balanceOf(order)), method: 'cash' })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const { errors, validate, clear } = useErrors()
 
   async function submit(event) {
     event.preventDefault()
+    const valid = validate({
+      date: [form.date, checks.required('Date')],
+      amount: [form.amount, checks.positive('Amount')],
+    })
+    if (!valid) return
     setError(null)
     setSaving(true)
     try {
@@ -262,21 +271,30 @@ function PaymentForm({ order, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-2 gap-4">
+    <form onSubmit={submit} noValidate className="grid grid-cols-2 gap-4">
       <div className="col-span-2 empty:hidden">
         <Alert onClose={() => setError(null)}>{error}</Alert>
       </div>
-      <Field label="Date">
-        <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
+      <Field label="Date" required error={errors.date}>
+        <Input
+          type="date"
+          value={form.date}
+          onChange={(e) => {
+            setForm({ ...form, date: e.target.value })
+            clear('date')
+          }}
+        />
       </Field>
-      <Field label="Amount (₹)">
+      <Field label="Amount (₹)" required error={errors.amount}>
         <Input
           type="number"
           step="0.01"
           min="0"
           value={form.amount}
-          onChange={(e) => setForm({ ...form, amount: e.target.value })}
-          required
+          onChange={(e) => {
+            setForm({ ...form, amount: e.target.value })
+            clear('amount')
+          }}
           autoFocus
         />
       </Field>
@@ -435,13 +453,29 @@ function OrderForm({ order, onDone }) {
   const [rows, setRows] = useState(() => initialItemRows(order.items))
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const set = (field) => (event) => setForm({ ...form, [field]: event.target.value })
+  const { errors, validate, clear } = useErrors()
+  const set = (field) => (event) => {
+    setForm({ ...form, [field]: event.target.value })
+    clear(field)
+  }
+  const updateRows = (next) => {
+    setRows(next)
+    clear('items')
+  }
 
   const total = itemsTotal(rows)
   const balance = total - Number(form.paid || 0) - paymentsSum(order)
 
   async function submit(event) {
     event.preventDefault()
+    const valid = validate({
+      name: [form.name, checks.name()],
+      mobile: [form.mobile, checks.mobile()],
+      date: [form.date, checks.required('Date')],
+      items: [rows, checkItems],
+      paid: [form.paid, checks.notNegative('Advance')],
+    })
+    if (!valid) return
     setError(null)
     setSaving(true)
     try {
@@ -456,25 +490,28 @@ function OrderForm({ order, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form onSubmit={submit} noValidate className="space-y-5">
       <Alert onClose={() => setError(null)}>{error}</Alert>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="Name" required>
-          <Input value={form.name} onChange={set('name')} required autoFocus maxLength={100} />
+        <Field label="Name" required error={errors.name}>
+          <Input value={form.name} onChange={set('name')} autoFocus maxLength={100} />
         </Field>
-        <Field label="Mobile number">
+        <Field label="Mobile number" error={errors.mobile}>
           <Input value={form.mobile} onChange={set('mobile')} inputMode="numeric" maxLength={10} placeholder="10 digits" />
         </Field>
-        <Field label="Delivery date">
-          <Input type="date" value={form.date} onChange={set('date')} required />
+        <Field label="Delivery date" required error={errors.date}>
+          <Input type="date" value={form.date} onChange={set('date')} />
         </Field>
       </div>
 
-      <ItemRows rows={rows} setRows={setRows} />
+      <div>
+        <ItemRows rows={rows} setRows={updateRows} />
+        <FieldError>{errors.items}</FieldError>
+      </div>
 
       <div className="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-3">
-        <Field label="Advance (₹)" hint={paymentsSum(order) ? `Plus ${formatMoney(paymentsSum(order))} in later payments` : undefined}>
+        <Field label="Advance (₹)" error={errors.paid} hint={paymentsSum(order) ? `Plus ${formatMoney(paymentsSum(order))} in later payments` : undefined}>
           <Input type="number" step="0.01" min="0" value={form.paid} onChange={set('paid')} placeholder="0" />
         </Field>
         <Field label="Note" className="sm:col-span-2">

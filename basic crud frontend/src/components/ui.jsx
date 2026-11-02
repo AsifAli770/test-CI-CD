@@ -39,17 +39,39 @@ export function Textarea({ className = '', ...props }) {
   return <textarea rows={3} className={`${INPUT_CLASS} ${className}`} {...props} />
 }
 
-export function Field({ label, hint, required, className = '', children }) {
+// error: message shown in red under the input (and the input gets a red border)
+export function Field({ label, hint, required, error, className = '', children }) {
   return (
-    <label className={`block ${className}`}>
+    <label
+      className={`block ${error ? '[&_input]:border-red-400 [&_input]:bg-red-50/40 [&_select]:border-red-400' : ''} ${className}`}
+    >
       <span className="mb-1 block text-sm font-medium text-slate-700">
         {label}
         {required && <span className="text-red-500"> *</span>}
       </span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+      {error ? (
+        <span className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 shrink-0">
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {error}
+        </span>
+      ) : (
+        hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>
+      )}
     </label>
   )
+}
+
+// Red message for errors that don't belong to a single input (e.g. the item list)
+export function FieldError({ children }) {
+  if (!children) return null
+  return <p className="mt-2 text-xs font-medium text-red-600">{children}</p>
 }
 
 export function Card({ title, actions, className = '', children }) {

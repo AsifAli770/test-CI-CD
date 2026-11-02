@@ -14,6 +14,7 @@ const ICONS = {
   card: 'M1 4h22v16H1zM1 10h22',
   check: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
   logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
+  grid: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
 }
 
 function Icon({ name, className = 'h-4.5 w-4.5' }) {
@@ -25,6 +26,10 @@ function Icon({ name, className = 'h-4.5 w-4.5' }) {
 }
 
 const SECTIONS = [
+  {
+    title: 'Overview',
+    items: [{ to: '/', label: 'Dashboard', icon: 'grid' }],
+  },
   {
     title: 'Customers',
     items: [

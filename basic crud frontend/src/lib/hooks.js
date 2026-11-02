@@ -1,4 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
+
+// Opens a page's "add" form when the URL has ?new=1 (used by dashboard quick actions),
+// then removes the flag so a refresh doesn't open it again
+export function useOpenOnNew(open) {
+  const [params, setParams] = useSearchParams()
+  const wantsNew = params.get('new') === '1'
+
+  useEffect(() => {
+    if (!wantsNew) return
+    open()
+    setParams({}, { replace: true })
+  }, [wantsNew, open, setParams])
+}
 
 // Loads data with load() whenever deps change. reload() fetches again.
 export function useFetch(load, deps) {

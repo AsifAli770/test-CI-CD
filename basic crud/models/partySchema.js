@@ -7,7 +7,13 @@ const ARCHIVE_DAYS = 30;
 function partySchema() {
   const schema = new mongoose.Schema(
     {
-      name: { type: String, required: [true, "Name is required"], trim: true, maxlength: 100 },
+      name: {
+        type: String,
+        required: [true, "Name is required"],
+        trim: true,
+        maxlength: 100,
+        match: [/^[\p{L}\s.'-]+$/u, "Name can only contain letters, no numbers"],
+      },
       mobile: {
         type: String,
         trim: true,

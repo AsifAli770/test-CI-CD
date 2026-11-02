@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Balance, Button, Card, ConfirmDialog, Empty, Field, Input, Loading, Modal, PageHeader, Table, td, th } from '../components/ui'
 import { api } from '../lib/api'
 import { formatMoney } from '../lib/format'
-import { useFetch } from '../lib/hooks'
+import { useFetch, useOpenOnNew } from '../lib/hooks'
+import { checks, useErrors } from '../lib/validate'
 
 // Customers or suppliers: name, mobile, milk rate and current balance
 export default function PartyList({ config }) {
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState(null)
+  useOpenOnNew(useCallback(() => setEditing({}), []))
   const [deleting, setDeleting] = useState(null)
   const { data: parties, error: loadError, loading, reload } = useFetch(() => api.get(config.api), [config.api])
 
@@ -109,10 +111,20 @@ function PartyForm({ config, party, onClose, onSaved }) {
   })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const set = (field) => (event) => setForm({ ...form, [field]: event.target.value })
+  const { errors, validate, clear } = useErrors()
+  const set = (field) => (event) => {
+    setForm({ ...form, [field]: event.target.value })
+    clear(field)
+  }
 
   async function submit(event) {
     event.preventDefault()
+    const valid = validate({
+      name: [form.name, checks.name()],
+      mobile: [form.mobile, checks.mobile()],
+      rate: [form.rate, checks.requiredNotNegative('Milk rate')],
+    })
+    if (!valid) return
     setSaving(true)
     try {
       const body = { ...form, rate: Number(form.rate) }
@@ -127,16 +139,21 @@ function PartyForm({ config, party, onClose, onSaved }) {
 
   return (
     <Modal title={party._id ? `Edit ${party.name}` : `Add ${config.label}`} onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} noValidate className="space-y-4">
         <Alert onClose={() => setError(null)}>{error}</Alert>
-        <Field label="Name" required>
-          <Input value={form.name} onChange={set('name')} required autoFocus maxLength={100} />
+        <Field label="Name" required error={errors.name}>
+          <Input value={form.name} onChange={set('name')} autoFocus maxLength={100} />
         </Field>
-        <Field label="Mobile number">
+        <Field label="Mobile number" error={errors.mobile}>
           <Input value={form.mobile} onChange={set('mobile')} inputMode="numeric" maxLength={10} placeholder="10 digits" />
         </Field>
-        <Field label="Milk rate (₹ per kg)" required hint={party._id ? 'A new rate applies to new entries only' : undefined}>
-          <Input type="number" step="0.01" min="0" value={form.rate} onChange={set('rate')} required />
+        <Field
+          label="Milk rate (₹ per kg)"
+          required
+          error={errors.rate}
+          hint={party._id ? 'A new rate applies to new entries only' : undefined}
+        >
+          <Input type="number" step="0.01" min="0" value={form.rate} onChange={set('rate')} />
         </Field>
         <div className="flex gap-2">
           <Button type="submit" disabled={saving}>

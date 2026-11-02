@@ -21,7 +21,13 @@ const paymentSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    name: { type: String, required: [true, "Name is required"], trim: true, maxlength: 100 },
+    name: {
+      type: String,
+      required: [true, "Name is required"],
+      trim: true,
+      maxlength: 100,
+      match: [/^[\p{L}\s.'-]+$/u, "Name can only contain letters, no numbers"],
+    },
     mobile: { type: String, trim: true, match: [/^\d{10}$/, "Mobile number must be 10 digits"] },
     // Delivery / function date, "YYYY-MM-DD"
     date: { type: String, required: true, match: [/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"] },
