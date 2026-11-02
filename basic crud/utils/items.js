@@ -22,4 +22,10 @@ function parseItems(list) {
   return { items, total: round2(items.reduce((sum, item) => sum + item.amount, 0)) };
 }
 
-module.exports = { round2, httpError, parseItems };
+// A payment can't be more than what is still due
+function checkNotMoreThanBalance(amount, balance) {
+  if (balance <= 0) throw httpError(400, "Nothing is due - the balance is already cleared");
+  if (amount > balance + 0.001) throw httpError(400, `Amount cannot be more than the balance (₹${round2(balance)})`);
+}
+
+module.exports = { round2, httpError, parseItems, checkNotMoreThanBalance };

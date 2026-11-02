@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Entry = require("../models/Entry");
 const { ARCHIVE_DAYS } = require("../models/partySchema");
-const { round2, httpError } = require("../utils/items");
+const { round2, httpError, checkNotMoreThanBalance } = require("../utils/items");
 const respond = require("../utils/respond");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -148,6 +148,8 @@ function createPartyController(Party) {
       } else if (kind === "payment") {
         const paid = Number(amount);
         if (!(paid > 0)) throw httpError(400, "Amount must be greater than 0");
+        const balance = (await balances([party._id])).get(String(party._id)) || 0;
+        checkNotMoreThanBalance(paid, balance);
         entry.amount = round2(paid);
         entry.method = method === "online" ? "online" : "cash";
       } else {

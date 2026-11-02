@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { Alert, Balance, Button, Card, ConfirmDialog, Empty, Field, Input, Loading, Modal, PageHeader, RadioGroup, Table, td, th } from '../components/ui'
 import { api } from '../lib/api'
 import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
+import { downloadCsv } from '../lib/csv'
 import { useFetch } from '../lib/hooks'
 import { checks, useErrors } from '../lib/validate'
 
@@ -135,6 +136,7 @@ export default function PartyLedger({ config }) {
 function LedgerDetail({ id, config, version, onChange }) {
   const [range, setRange] = useState({ from: '', to: '' })
   const [deleting, setDeleting] = useState(null)
+  const [exporting, setExporting] = useState(false)
   const { data, error: loadError, loading } = useFetch(
     () => api.get(`${config.api}/${id}/ledger`, range),
     [id, range.from, range.to, version],
@@ -168,10 +170,19 @@ function LedgerDetail({ id, config, version, onChange }) {
             Clear
           </Button>
         )}
-        <Button variant="secondary" className="ml-auto" onClick={() => window.print()}>
-          Print
+        <Button variant="secondary" className="ml-auto" onClick={() => setExporting(true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          Export CSV
         </Button>
       </div>
+
+      {exporting && (
+        <Modal title={`Export ${data.party.name}'s ledger`} onClose={() => setExporting(false)}>
+          <ExportForm id={id} config={config} party={data.party} onDone={() => setExporting(false)} />
+        </Modal>
+      )}
 
       {data.rows.length === 0 && !data.opening ? (
         <Empty>No entries yet. Use “Add milk” or “{config.paymentLabel}”.</Empty>
@@ -251,6 +262,155 @@ function LedgerDetail({ id, config, version, onChange }) {
       )}
     </div>
   )
+}
+
+// Export choices: a whole month, a custom date range, or everything
+const thisMonth = () => todayStr().slice(0, 7)
+
+function monthRange(month) {
+  const [year, m] = month.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(year, m, 0)).getUTCDate()
+  return { from: `${month}-01`, to: `${month}-${String(lastDay).padStart(2, '0')}` }
+}
+
+function ExportForm({ id, config, party, onDone }) {
+  const [mode, setMode] = useState('month')
+  const [month, setMonth] = useState(thisMonth())
+  const [range, setRange] = useState({ from: '', to: todayStr() })
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const { errors, validate, clear } = useErrors()
+
+  async function submit(event) {
+    event.preventDefault()
+    const rules =
+      mode === 'month'
+        ? { month: [month, checks.required('Month')] }
+        : mode === 'range'
+          ? {
+              from: [range.from, checks.required('From date')],
+              to: [range.to, checks.required('To date'), (to) => (to < range.from ? 'To date must be after From date' : undefined)],
+            }
+          : {}
+    if (!validate(rules)) return
+
+    const period = mode === 'month' ? monthRange(month) : mode === 'range' ? range : { from: '', to: '' }
+    setError(null)
+    setBusy(true)
+    try {
+      const ledger = await api.get(`${config.api}/${id}/ledger`, period)
+      downloadCsv(exportFilename(party, mode, month, period), ledgerCsvRows(ledger, config, party, period))
+      onDone()
+    } catch (err) {
+      setError(err.message)
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className="space-y-5">
+      <Alert onClose={() => setError(null)}>{error}</Alert>
+      <div>
+        <span className="mb-1 block text-sm font-medium text-slate-700">What to export</span>
+        <RadioGroup
+          name="exportMode"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: 'month', label: 'Month' },
+            { value: 'range', label: 'Date range' },
+            { value: 'all', label: 'Everything' },
+          ]}
+        />
+      </div>
+
+      {mode === 'month' && (
+        <Field label="Month" error={errors.month}>
+          <Input
+            type="month"
+            value={month}
+            max={thisMonth()}
+            onChange={(e) => {
+              setMonth(e.target.value)
+              clear('month')
+            }}
+          />
+        </Field>
+      )}
+
+      {mode === 'range' && (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="From" error={errors.from}>
+            <Input
+              type="date"
+              value={range.from}
+              onChange={(e) => {
+                setRange({ ...range, from: e.target.value })
+                clear('from')
+              }}
+            />
+          </Field>
+          <Field label="To" error={errors.to}>
+            <Input
+              type="date"
+              value={range.to}
+              onChange={(e) => {
+                setRange({ ...range, to: e.target.value })
+                clear('to')
+              }}
+            />
+          </Field>
+        </div>
+      )}
+
+      {mode === 'all' && <p className="text-sm text-slate-500">Every entry for {party.name} since the start.</p>}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={busy}>
+          {busy ? 'Preparing…' : 'Download CSV'}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+function exportFilename(party, mode, month, period) {
+  const name = party.name.trim().replace(/[^\p{L}\p{N}]+/gu, '-')
+  const when = mode === 'month' ? month : mode === 'range' ? `${period.from}_to_${period.to}` : 'all'
+  return `${name}-ledger-${when}.csv`
+}
+
+// Plain numbers (no ₹ sign) so the amounts can be added up in Excel
+function ledgerCsvRows(ledger, config, party, period) {
+  const rows = [
+    [`${config.label} ledger`, party.name],
+    ['Mobile', party.mobile || ''],
+    ['Milk rate (Rs/kg)', party.rate],
+    ['Period', period.from ? `${period.from} to ${period.to}` : 'All entries'],
+    [],
+    ['Date', 'Type', 'Quantity (kg)', 'Rate (Rs/kg)', `${config.milkLabel} (Rs)`, `${config.paymentLabel} (Rs)`, 'Paid by', 'Note', 'Balance (Rs)'],
+  ]
+  if (period.from) rows.push([period.from, 'Previous balance', '', '', '', '', '', '', ledger.opening])
+  for (const entry of ledger.rows) {
+    const milk = entry.kind === 'milk'
+    rows.push([
+      entry.date,
+      milk ? 'Milk' : 'Payment',
+      milk ? entry.quantity : '',
+      milk ? entry.rate : '',
+      milk ? entry.amount : '',
+      milk ? '' : entry.amount,
+      milk ? '' : entry.method === 'online' ? 'Online' : 'Cash',
+      entry.note || '',
+      entry.balance,
+    ])
+  }
+  rows.push([], ['Total', '', ledger.totalQuantity, '', ledger.totalMilk, ledger.totalPaid, '', '', ledger.closing])
+  rows.push([config.balanceLabel, '', '', '', '', '', '', '', ledger.closing])
+  return rows
 }
 
 // Short text for a ledger line: "Milk 2 kg × ₹75" or "Payment"
@@ -349,7 +509,7 @@ function PaymentForm({ config, party, onDone }) {
       onSubmit={(e) =>
         submit(e, { kind: 'payment', ...form }, {
           date: [form.date, checks.required('Date')],
-          amount: [form.amount, checks.positive('Amount')],
+          amount: [form.amount, checks.payment(party.balance)],
         })
       }
       className="grid grid-cols-2 gap-4"

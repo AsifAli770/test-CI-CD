@@ -23,8 +23,21 @@ export function Button({ variant = 'primary', size = 'md', className = '', ...pr
 const INPUT_CLASS =
   'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-slate-100'
 
-export function Input({ className = '', ...props }) {
-  return <input className={`${INPUT_CLASS} ${className}`} {...props} />
+// Touch screens (phones, tablets) - mice and trackpads report "fine"
+const isTouch = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+
+export function Input({ className = '', onChange, ...props }) {
+  // On phones the date picker stays open until "Done" is tapped; close it as
+  // soon as a date is picked. Not done on desktop, where blurring would
+  // interrupt typing the date with the keyboard.
+  const handleChange =
+    props.type === 'date' && onChange
+      ? (event) => {
+          onChange(event)
+          if (event.target.value && isTouch()) event.target.blur()
+        }
+      : onChange
+  return <input className={`${INPUT_CLASS} ${className}`} onChange={handleChange} {...props} />
 }
 
 export function Select({ className = '', children, ...props }) {

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Credit = require("../models/Credit");
-const { round2, httpError, parseItems } = require("../utils/items");
+const { round2, httpError, parseItems, checkNotMoreThanBalance } = require("../utils/items");
 const respond = require("../utils/respond");
 
 async function findCredit(id) {
@@ -44,6 +44,7 @@ exports.addPayment = async (req, res) => {
   const { date, amount, method } = req.body || {};
   const paid = Number(amount);
   if (!(paid > 0)) throw httpError(400, "Amount must be greater than 0");
+  checkNotMoreThanBalance(paid, credit.total - credit.paid);
   credit.payments.push({ date, amount: round2(paid), method: method === "online" ? "online" : "cash" });
   await credit.save();
   const fullyPaid = credit.paid >= credit.total;

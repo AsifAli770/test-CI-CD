@@ -278,7 +278,7 @@ function PaymentForm({ credit, onDone }) {
     event.preventDefault()
     const valid = validate({
       date: [form.date, checks.required('Date')],
-      amount: [form.amount, checks.positive('Amount')],
+      amount: [form.amount, checks.payment(balanceOf(credit))],
     })
     if (!valid) return
     setError(null)

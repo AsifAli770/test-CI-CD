@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
-const { round2, httpError, parseItems } = require("../utils/items");
+const { round2, httpError, parseItems, checkNotMoreThanBalance } = require("../utils/items");
 const respond = require("../utils/respond");
 
 // Builds the saved fields from the request; amounts are always worked out here
@@ -55,6 +55,7 @@ exports.addPayment = async (req, res) => {
   const { date, amount, method } = req.body || {};
   const value = Number(amount);
   if (!(value > 0)) throw httpError(400, "Amount must be greater than 0");
+  checkNotMoreThanBalance(value, order.total - order.totalPaid);
   order.payments.push({ date, amount: round2(value), method: method === "online" ? "online" : "cash" });
   await order.save();
   const fullyPaid = order.totalPaid >= order.total;

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatMoney } from './format'
 
 // Letters (any language), spaces, dots, apostrophes and hyphens - no digits
 export const NAME_PATTERN = /^[\p{L}\s.'-]+$/u
@@ -21,6 +22,14 @@ export const checks = {
   positive: (label) => (value) => {
     if (isBlank(value)) return `${label} is required`
     if (!(Number(value) > 0)) return `${label} must be greater than 0`
+  },
+
+  // Payment amount: required, above 0, and not more than what is still due
+  payment: (balance) => (value) => {
+    if (isBlank(value)) return 'Amount is required'
+    if (!(Number(value) > 0)) return 'Amount must be greater than 0'
+    if (balance <= 0) return 'Nothing is due - the balance is already cleared'
+    if (Number(value) > balance + 0.001) return `Amount cannot be more than the balance (${formatMoney(balance)})`
   },
 
   notNegative: (label) => (value) => {
