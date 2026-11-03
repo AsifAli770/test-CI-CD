@@ -73,19 +73,19 @@ function Sidebar({ onNavigate }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-slate-900 to-slate-950">
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+    <div className="flex h-full flex-col border-r border-slate-200 bg-white">
+      <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-lg shadow-lg shadow-brand-600/30">🥛</div>
         <div>
-          <div className="font-semibold text-white">Dairy</div>
-          <div className="text-xs text-slate-400">Dairy management</div>
+          <div className="font-bold text-black">Dairy</div>
+          <div className="text-xs text-slate-500">Dairy management</div>
         </div>
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {SECTIONS.map((section) => (
           <div key={section.title}>
-            <div className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">{section.title}</div>
+            <div className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase">{section.title}</div>
             <div className="space-y-0.5">
               {section.items.map((item) => (
                 <NavLink
@@ -95,14 +95,14 @@ function Sidebar({ onNavigate }) {
                   onClick={onNavigate}
                   className={({ isActive }) =>
                     `group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      isActive ? 'bg-white/10 font-medium text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                      isActive ? 'bg-brand-50 font-semibold text-brand-700' : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`
                   }
                 >
                   {({ isActive }) => (
                     <>
-                      {isActive && <span className="absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r bg-brand-500" />}
-                      <Icon name={item.icon} className={`h-[18px] w-[18px] ${isActive ? 'text-brand-500' : ''}`} />
+                      {isActive && <span className="absolute top-1.5 bottom-1.5 left-0 w-1 rounded-r bg-brand-600" />}
+                      <Icon name={item.icon} className={`h-[18px] w-[18px] ${isActive ? 'text-brand-600' : 'text-slate-500 group-hover:text-slate-700'}`} />
                       {item.label}
                     </>
                   )}
@@ -113,7 +113,7 @@ function Sidebar({ onNavigate }) {
         ))}
       </nav>
 
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-slate-200 p-3">
         {installable && (
           <button
             type="button"
@@ -129,15 +129,15 @@ function Sidebar({ onNavigate }) {
             {(user?.username || 'A').charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-white">{user?.username || 'Admin'}</div>
-            <div className="text-xs text-slate-400 capitalize">{user?.role || 'admin'}</div>
+            <div className="truncate text-sm font-semibold text-black">{user?.username || 'Admin'}</div>
+            <div className="text-xs text-slate-500 capitalize">{user?.role || 'admin'}</div>
           </div>
           <button
             type="button"
             onClick={() => setConfirming(true)}
             title="Log out"
             aria-label="Log out"
-            className="rounded-md p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+            className="rounded-md p-2 text-slate-500 hover:bg-red-50 hover:text-red-600"
           >
             <Icon name="logout" className="h-[18px] w-[18px]" />
           </button>
@@ -169,7 +169,7 @@ export default function Layout() {
 
       {open && (
         <div className="fixed inset-0 z-40 flex lg:hidden print:hidden">
-          <aside className="w-64">
+          <aside className="w-64 shadow-xl">
             <Sidebar onNavigate={() => setOpen(false)} />
           </aside>
           <button type="button" className="flex-1 bg-slate-900/50" aria-label="Close menu" onClick={() => setOpen(false)} />
