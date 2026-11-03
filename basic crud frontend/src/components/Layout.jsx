@@ -181,7 +181,7 @@ export default function Layout() {
           <button type="button" onClick={() => setOpen(true)} className="rounded-md px-2 py-1 text-xl" aria-label="Open menu">
             ☰
           </button>
-          <span className="font-semibold">crud</span>
+          <span className="font-semibold">Dairy</span>
         </header>
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 print:p-0">
           <Outlet />

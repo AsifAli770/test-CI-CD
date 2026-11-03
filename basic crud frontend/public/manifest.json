@@ -1,6 +1,6 @@
 {
-  "name": "crud - Dairy Management",
-  "short_name": "crud",
+  "name": "Dairy - Dairy Management",
+  "short_name": "Dairy",
   "description": "Customers, suppliers, milk records, bulk orders and credit sales for your dairy.",
   "start_url": "/",
   "scope": "/",
