@@ -19,7 +19,7 @@ import {
   th,
 } from '../components/ui'
 import { api } from '../lib/api'
-import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
+import { formatDate, formatTime, formatMoney, formatQty, todayStr } from '../lib/format'
 import { useFetch, useOpenOnNew } from '../lib/hooks'
 import { initialItemRows, itemsBody, itemsTotal } from '../lib/items'
 import { checkItems, checks, useErrors } from '../lib/validate'
@@ -403,7 +403,10 @@ function CreditPreview({ credit, onChange, onPay }) {
               <tbody>
                 {credit.payments.map((p) => (
                   <tr key={p._id}>
-                    <td className={td}>{formatDate(p.date)}</td>
+                    <td className={`${td} whitespace-nowrap`}>
+                      {formatDate(p.date)}
+                      {p.createdAt && <span className="ml-1.5 text-xs text-slate-500">{formatTime(p.createdAt)}</span>}
+                    </td>
                     <td className={td}>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${

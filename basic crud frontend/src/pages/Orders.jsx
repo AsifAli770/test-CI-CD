@@ -19,7 +19,7 @@ import {
   th,
 } from '../components/ui'
 import { api } from '../lib/api'
-import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
+import { formatDate, formatTime, formatMoney, formatQty, todayStr } from '../lib/format'
 import { useFetch, useOpenOnNew } from '../lib/hooks'
 import { initialItemRows, itemsBody, itemsTotal } from '../lib/items'
 import { checkItems, checks, useErrors } from '../lib/validate'
@@ -377,6 +377,7 @@ function OrderPreview({ order, done, onChange, onPay, onEdit }) {
               <tr key={p._id}>
                 <td className={td} colSpan={3}>
                   Payment · {formatDate(p.date)}
+                  {p.createdAt && <span className="ml-1 text-slate-500">{formatTime(p.createdAt)}</span>}
                   <span
                     className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
                       p.method === 'online' ? 'bg-brand-50 text-brand-700' : 'bg-emerald-50 text-emerald-700'

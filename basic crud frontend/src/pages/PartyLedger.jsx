@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { Alert, Balance, Button, Card, ConfirmDialog, Empty, Field, Input, Loading, Modal, PageHeader, RadioGroup, Table, td, th } from '../components/ui'
 import { api } from '../lib/api'
-import { formatDate, formatMoney, formatQty, todayStr } from '../lib/format'
+import { formatDate, formatTime, formatMoney, formatQty, todayStr } from '../lib/format'
 import { downloadCsv } from '../lib/csv'
 import { useFetch } from '../lib/hooks'
 import { checks, useErrors } from '../lib/validate'
@@ -213,7 +213,12 @@ function LedgerDetail({ id, config, version, onChange }) {
             )}
             {data.rows.map((entry) => (
               <tr key={entry._id}>
-                <td className={`${td} whitespace-nowrap`}>{formatDate(entry.date)}</td>
+                <td className={`${td} whitespace-nowrap`}>
+                  {formatDate(entry.date)}
+                  {entry.kind === 'payment' && entry.createdAt && (
+                    <div className="text-xs text-slate-500">{formatTime(entry.createdAt)}</div>
+                  )}
+                </td>
                 <td className={td}>
                   {entry.kind === 'milk' ? (
                     `Milk ${formatQty(entry.quantity)} × ${formatMoney(entry.rate)}`

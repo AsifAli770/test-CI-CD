@@ -27,3 +27,9 @@ export function formatDate(day) {
     year: 'numeric',
   })
 }
+
+// Time a record was saved, e.g. "10:45 am" (from createdAt). Older records may not have one.
+export function formatTime(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+}
