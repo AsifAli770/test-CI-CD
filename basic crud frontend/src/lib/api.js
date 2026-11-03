@@ -15,7 +15,13 @@ async function request(path, { method = 'GET', body, params } = {}) {
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
+  let res
+  try {
+    res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined })
+  } catch {
+    // fetch only throws when the server can't be reached at all
+    throw new Error(navigator.onLine ? 'Cannot reach the server. Please try again.' : 'You are offline. Check your internet connection.')
+  }
   const data = await res.json().catch(() => null)
 
   // Token missing or expired: back to the login page

@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { clearLogin, getUser } from '../lib/auth'
+import { canInstall, onInstallChange, promptInstall } from '../lib/install'
 import { toast } from '../lib/toast'
 import { ConfirmDialog } from './ui'
 
@@ -15,6 +16,7 @@ const ICONS = {
   check: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
   logout: 'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9',
   grid: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
+  download: 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3',
 }
 
 function Icon({ name, className = 'h-4.5 w-4.5' }) {
@@ -61,6 +63,8 @@ function Sidebar({ onNavigate }) {
   const navigate = useNavigate()
   const user = getUser()
   const [confirming, setConfirming] = useState(false)
+  const [installable, setInstallable] = useState(canInstall)
+  useEffect(() => onInstallChange(setInstallable), [])
 
   function logout() {
     clearLogin()
@@ -110,6 +114,16 @@ function Sidebar({ onNavigate }) {
       </nav>
 
       <div className="border-t border-white/10 p-3">
+        {installable && (
+          <button
+            type="button"
+            onClick={promptInstall}
+            className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          >
+            <Icon name="download" className="h-4 w-4" />
+            Install app
+          </button>
+        )}
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white uppercase">
             {(user?.username || 'A').charAt(0)}
