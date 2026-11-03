@@ -77,7 +77,7 @@ function Sidebar({ onNavigate }) {
       <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-lg shadow-lg shadow-brand-600/30">🥛</div>
         <div>
-          <div className="font-semibold text-white">crud</div>
+          <div className="font-semibold text-white">Dairy</div>
           <div className="text-xs text-slate-400">Dairy management</div>
         </div>
       </div>
